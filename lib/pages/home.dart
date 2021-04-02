@@ -46,8 +46,8 @@ class _HomePageState extends State<HomePage> {
             children: [
               _SearchBar(),
               _TaskTable(),
-              _Menu(),
-              _Notice(),
+              const _Menu(),
+              const _Notice(),
               _TaskList(),
             ],
           ),
@@ -176,6 +176,8 @@ class _TaskTable extends StatelessWidget {
 
 /// 菜单
 class _Menu extends StatelessWidget {
+  const _Menu();
+
   Widget buildMenu(String icon, String name) {
     return TableCell(
       child: Padding(
@@ -196,6 +198,7 @@ class _Menu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('build');
     return Container(
       decoration: decoration,
       padding: const EdgeInsets.only(top: 12),
@@ -220,6 +223,8 @@ class _Menu extends StatelessWidget {
 
 /// 通知
 class _Notice extends StatefulWidget {
+  const _Notice();
+
   @override
   __NoticeState createState() => __NoticeState();
 }
@@ -227,11 +232,16 @@ class _Notice extends StatefulWidget {
 class __NoticeState extends State<_Notice> {
   final controller = PageController();
   Timer? timer;
+  final _future = get<List>("/api/nodes", query: {
+    "page": "1",
+    "itemsPerPage": "3",
+    "type.id": "3",
+  });
 
   @override
   void initState() {
     super.initState();
-    createTimer();
+    // createTimer();
   }
 
   @override
@@ -242,7 +252,7 @@ class __NoticeState extends State<_Notice> {
 
   void createTimer() {
     timer = Timer.periodic(Duration(seconds: 5), (Timer timer) {
-      if (controller.page == 3) {
+      if (controller.page == 4) {
         controller.animateToPage(
           0,
           duration: Duration(milliseconds: 400),
@@ -257,7 +267,7 @@ class __NoticeState extends State<_Notice> {
     });
   }
 
-  Widget buildNotice() {
+  Widget buildNotice(List data) {
     return GestureDetector(
       child: PageView.builder(
         controller: controller,
@@ -266,14 +276,14 @@ class __NoticeState extends State<_Notice> {
             child: Container(
               width: double.infinity,
               child: Text(
-                "some text $index",
+                data[index]['title'],
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
           );
         },
-        itemCount: 5,
+        itemCount: data.length,
         scrollDirection: Axis.vertical,
       ),
     );
@@ -297,19 +307,12 @@ class __NoticeState extends State<_Notice> {
           ),
           Expanded(
             child: FutureBuilder<List>(
-              future: get("/api/nodes", query: {
-                "page": "1",
-                "itemsPerPage": "3",
-                "type.id": "3",
-              }),
+              future: _future,
               builder: (_, snapshot) {
-                if (snapshot.hasData) {
-                  print(snapshot.data);
-                }
                 if (snapshot.hasError) {
                   throw snapshot.error ?? "获取通知数据未知错误";
                 }
-                return buildNotice();
+                return buildNotice(snapshot.data ?? []);
               },
             ),
           ),
