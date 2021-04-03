@@ -45,10 +45,10 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             children: [
               _SearchBar(),
-              _TaskTable(),
+              const _TaskTable(),
               const _Menu(),
               const _Notice(),
-              _TaskList(),
+              const _TaskList(),
             ],
           ),
         ),
@@ -101,15 +101,30 @@ class _SearchBar extends StatelessWidget {
 
 /// 任务
 class _TaskTable extends StatelessWidget {
-  Widget buildItem(BuildContext context) {
+  const _TaskTable();
+
+  Widget buildItem(BuildContext context, Map data) {
     return Container(
       padding: const EdgeInsets.all(10),
       child: Row(
         children: [
           Padding(
             padding: const EdgeInsets.only(right: 10),
-            child: CircleAvatar(
-              backgroundColor: Colors.red,
+            child: ClipOval(
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: Image.network(
+                  "https://backend.drgxb.com${data["owner"]?["avatar"]}",
+                  fit: BoxFit.cover,
+                  errorBuilder: (a, b, c) {
+                    return Container(
+                      child: Icon(Icons.broken_image, color: Colors.white),
+                      color: Colors.grey,
+                    );
+                  },
+                ),
+              ),
             ),
           ),
           Expanded(
@@ -117,24 +132,24 @@ class _TaskTable extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'username',
-                  style: Theme.of(context).textTheme.headline6,
+                  data["owner"]?["username"] ?? "",
+                  style: TextStyle(fontSize: 16),
                 ),
                 Text(
-                  'task',
-                  style: Theme.of(context).textTheme.subtitle1,
+                  data["category"]?["name"] ?? "",
+                  style: TextStyle(color: Color(0xff888888),fontSize: 14),
                 ),
                 Text(
-                  'id:666',
-                  style: Theme.of(context).textTheme.subtitle1,
+                  'id:${data["id"]}',
+                  style: TextStyle(color: Color(0xff888888),fontSize: 14),
                 ),
                 Text(
-                  '+2.5元',
+                  '+${data["price"]}元',
                   style: TextStyle(
                     color: Colors.red,
                     fontSize: 18,
                   ),
-                )
+                ),
               ],
             ),
           )
@@ -148,27 +163,36 @@ class _TaskTable extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: decoration,
-      child: Table(
-        border: TableBorder.symmetric(
-          inside: BorderSide(
-            width: 1,
-            color: Color(0xffe6e6e6),
-          ),
-        ),
-        children: [
-          TableRow(
+      child: FutureBuilder<List>(
+        future: get("/api/tasks", query: {
+          "order[bidPosition]": "desc",
+          "bidPosition[gt]": "0",
+          "page": "1",
+        }),
+        initialData: [],
+        builder: (context, snapshot) {
+          return Table(
+            border: TableBorder.symmetric(
+              inside: BorderSide(
+                width: 1,
+                color: Color(0xffe6e6e6),
+              ),
+            ),
             children: [
-              TableCell(child: buildItem(context)),
-              TableCell(child: buildItem(context)),
+              for (var i = 0; i < snapshot.data!.length; i += 2)
+                TableRow(
+                  children: [
+                    TableCell(
+                      child: buildItem(context, snapshot.data![i]),
+                    ),
+                    TableCell(
+                      child: buildItem(context, snapshot.data![i + 1]),
+                    ),
+                  ],
+                ),
             ],
-          ),
-          TableRow(
-            children: [
-              TableCell(child: buildItem(context)),
-              TableCell(child: buildItem(context)),
-            ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -198,7 +222,6 @@ class _Menu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('build');
     return Container(
       decoration: decoration,
       padding: const EdgeInsets.only(top: 12),
@@ -308,11 +331,9 @@ class __NoticeState extends State<_Notice> {
           Expanded(
             child: FutureBuilder<List>(
               future: _future,
+              initialData: [],
               builder: (_, snapshot) {
-                if (snapshot.hasError) {
-                  throw snapshot.error ?? "获取通知数据未知错误";
-                }
-                return buildNotice(snapshot.data ?? []);
+                return buildNotice(snapshot.data!);
               },
             ),
           ),
@@ -324,7 +345,9 @@ class __NoticeState extends State<_Notice> {
 
 /// 任务列表
 class _TaskList extends StatelessWidget {
-  Widget buildItem(int index) {
+  const _TaskList();
+
+  Widget buildItem(Map data) {
     var createTab = (String text, int type) {
       Color color;
       switch (type) {
@@ -342,8 +365,9 @@ class _TaskList extends StatelessWidget {
       }
       return Container(
         decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(3)),
+          color: color.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(3),
+        ),
         padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 8),
         margin: const EdgeInsets.only(right: 5),
         child: Text(
@@ -364,15 +388,28 @@ class _TaskList extends StatelessWidget {
             child: Column(
               children: [
                 ClipOval(
-                  child: Container(
-                    color: Colors.red,
-                    width: 40,
-                    height: 40,
+                  child: SizedBox(
+                    width: 46,
+                    height: 46,
+                    child: Image.network(
+                      "https://backend.drgxb.com${data["owner"]?["avatar"]}",
+                      fit: BoxFit.cover,
+                      errorBuilder: (a, b, c) {
+                        return Container(
+                          child: Icon(Icons.broken_image, color: Colors.white),
+                          color: Colors.grey,
+                        );
+                      },
+                    ),
                   ),
                 ),
-                Text(
-                  'username',
-                  overflow: TextOverflow.ellipsis,
+                Padding(
+                  padding: const EdgeInsets.only(top: 3.0),
+                  child: Text(
+                    data["owner"]?["username"] ?? "用户名",
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12),
+                  ),
                 ),
               ],
             ),
@@ -383,10 +420,13 @@ class _TaskList extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('task name'),
+                  Text(data["title"] ?? "标题"),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 5),
-                    child: Text('description'),
+                    child: Text(
+                      "${data["countApplies"]}人已赚 | 剩余：${data["remain"]}",
+                      style: TextStyle(fontSize: 12, color: Color(0xff888888)),
+                    ),
                   ),
                   Wrap(
                     children: [
@@ -402,7 +442,7 @@ class _TaskList extends StatelessWidget {
           Column(
             children: [
               Text(
-                '1元',
+                '${data["price"]}元',
                 style: TextStyle(color: Colors.red, fontSize: 20),
               ),
             ],
@@ -418,31 +458,43 @@ class _TaskList extends StatelessWidget {
       decoration: decoration,
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xffe6e6e6))),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '推荐任务',
-                  style: Theme.of(context).textTheme.headline6,
+      child: FutureBuilder<List>(
+        initialData: [],
+        future: get<List>("/api/tasks", query: {
+          "page": "1",
+          "sticky": "true",
+          "recommended": "true",
+          "order[sticky]": "desc",
+        }),
+        builder: (context, snapshot) {
+          return Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Color(0xffe6e6e6))),
                 ),
-                Row(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('更多'),
-                    Icon(Icons.keyboard_arrow_right),
+                    Text(
+                      '推荐任务',
+                      style: Theme.of(context).textTheme.headline6,
+                    ),
+                    Row(
+                      children: [
+                        Text('更多'),
+                        Icon(Icons.keyboard_arrow_right),
+                      ],
+                    ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          for (var i = 0; i < 10; i++) buildItem(i)
-        ],
+              ),
+              for (var i = 0; i < snapshot.data!.length; i++)
+                buildItem(snapshot.data![i])
+            ],
+          );
+        },
       ),
     );
   }
